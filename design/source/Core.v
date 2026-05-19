@@ -162,36 +162,32 @@ module Core #(
 
         // 窗口和行缓存移动
         if (do_win_mv) begin
-            if (ext_col_d2 == EXT_COLS - 1) begin
-                // 更新窗口和行缓存
-            end else begin
-                line_buf0[ext_col_d2] <= win[4][4];
-                line_buf1[ext_col_d2] <= line_buf0[ext_col_d2];
-                line_buf2[ext_col_d2] <= line_buf1[ext_col_d2];
-                line_buf3[ext_col_d2] <= line_buf2[ext_col_d2];
+            line_buf0[ext_col_d2] <= win[4][4];
+            line_buf1[ext_col_d2] <= line_buf0[ext_col_d2];
+            line_buf2[ext_col_d2] <= line_buf1[ext_col_d2];
+            line_buf3[ext_col_d2] <= line_buf2[ext_col_d2];
 
-                line_vld_buf0[ext_col_d2] <= win_vld[4][4];
-                line_vld_buf1[ext_col_d2] <= line_vld_buf0[ext_col_d2];
-                line_vld_buf2[ext_col_d2] <= line_vld_buf1[ext_col_d2];
-                line_vld_buf3[ext_col_d2] <= line_vld_buf2[ext_col_d2];
+            line_vld_buf0[ext_col_d2] <= win_vld[4][4];
+            line_vld_buf1[ext_col_d2] <= line_vld_buf0[ext_col_d2];
+            line_vld_buf2[ext_col_d2] <= line_vld_buf1[ext_col_d2];
+            line_vld_buf3[ext_col_d2] <= line_vld_buf2[ext_col_d2];
 
-                for (m = 0; m <= 4; m = m + 1) begin
-                    for (n = 0; n <= 3; n = n + 1) begin
-                        win[m][n] <= win[m][n+1];
-                        win_vld[m][n] <= win_vld[m][n+1];
-                    end
+            for (m = 0; m <= 4; m = m + 1) begin
+                for (n = 0; n <= 3; n = n + 1) begin
+                    win[m][n] <= win[m][n+1];
+                    win_vld[m][n] <= win_vld[m][n+1];
                 end
-
-                win[0][4] <= line_buf3[ext_col_d2];
-                win[1][4] <= line_buf2[ext_col_d2];
-                win[2][4] <= line_buf1[ext_col_d2];
-                win[3][4] <= line_buf0[ext_col_d2];
-
-                win_vld[0][4] <= line_vld_buf3[ext_col_d2];
-                win_vld[1][4] <= line_vld_buf2[ext_col_d2];
-                win_vld[2][4] <= line_vld_buf1[ext_col_d2];
-                win_vld[3][4] <= line_vld_buf0[ext_col_d2];
             end
+
+            win[0][4] <= line_buf3[ext_col_d2];
+            win[1][4] <= line_buf2[ext_col_d2];
+            win[2][4] <= line_buf1[ext_col_d2];
+            win[3][4] <= line_buf0[ext_col_d2];
+
+            win_vld[0][4] <= line_vld_buf3[ext_col_d2];
+            win_vld[1][4] <= line_vld_buf2[ext_col_d2];
+            win_vld[2][4] <= line_vld_buf1[ext_col_d2];
+            win_vld[3][4] <= line_vld_buf0[ext_col_d2];
         end
 
         // 坐标迭代
