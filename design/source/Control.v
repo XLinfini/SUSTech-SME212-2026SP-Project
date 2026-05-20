@@ -257,13 +257,34 @@ module Control #(
 
     //////////////////////////////////////////////////////////////////////////////
     reg [5:0] peak_led = 6'b0; // peak number indicator
-    // TODO - implement peak-1~6 indicators logic here
-    //////////////////////////////////////////////////////////////////////////////
+    integer i;
+    always @(posedge clk) begin
+        if (~rstn || (current_state != STATE_DONE)) begin
+            peak_led <= 6'b0;
+        end
+        else begin
+            for (i = 0; i <= 6; i = i + 1) begin
+                if (i <= detect_peak_num - 1) begin
+                    if (i == disp_peak_idx) begin
+                        peak_led[i] <= (blink_ms == 9'd500) && ms_tick ? ~peak_led[i] : peak_led[i];
+                    end
+                    else begin
+                        peak_led[i] <= 1'b1;
+                    end
+                end
+                else begin
+                    peak_led[i] <= 1'b0;
+                end
+            end
+        end
+    end
+
+//////////////////////////////////////////////////////////////////////////////
 
 
-    ////////////////////////////// DONT MODIFY THIS CODE ////////////////////////
-    // assign LED output
-    assign led = {led7, peak_led, led0};
-    //////////////////////////////////////////////////////////////////////////////
+////////////////////////////// DONT MODIFY THIS CODE ////////////////////////
+// assign LED output
+assign led = {led7, peak_led, led0};
+//////////////////////////////////////////////////////////////////////////////
 
 endmodule
