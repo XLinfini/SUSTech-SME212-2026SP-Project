@@ -227,9 +227,6 @@ module Control #(
         if (~rstn) begin
             led7 <= 1'b0;
         end
-        else if (current_state == STATE_PENDING) begin
-            led7 <= ((blink_ms == 9'd500) && ms_tick) ? ~led7 : led7;
-        end
         else if (current_state == STATE_LOADING) begin
             led7 <= ((blink_ms == 9'd500) && ms_tick) ? ~led7 : led7;
         end
