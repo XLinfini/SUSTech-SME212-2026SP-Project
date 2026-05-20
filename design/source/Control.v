@@ -196,12 +196,49 @@ module Control #(
     assign disp_mode = disp_mode_r;
     assign disp_peak_idx = disp_peak_idx_r;
 
+    wire pressed_dw_keys = {pressed_dw_key6, pressed_dw_key5, pressed_dw_key4, pressed_dw_key3, pressed_dw_key2, pressed_dw_key1};
+    integer i;
     always @(posedge clk) begin
-        if (~rstn) begin
+        if (~rstn || current != STATE_DONE) begin
             disp_mode_r <= SEG_MODE_NONE;
             disp_peak_idx_r <= 3'b111;
         end
-        // TODO - control 7-segments tube display mode here
+        else begin
+            if (pressed_dw_keys) begin
+                for (i = 0; i < 6; i = i + 1) begin
+                    if (pressed_dw_keys[i]) begin
+                        if (disp_peak_idx_r == i) begin
+                            if (disp_mode_r == SEG_MODE_TIME) begin
+                                disp_mode_r <= SEG_MODE_POS;
+                            end
+                            else if (disp_mode_r == SEG_MODE_POS) begin
+                                disp_mode_r <= SEG_MODE_VAL;
+                            end
+                            else if (disp_mode_r == SEG_MODE_VAL) begin
+                                disp_mode_r <= SEG_MODE_TIME;
+                            end
+                            else begin
+                                disp_mode_r <= SEG_MODE_NONE;
+                            end
+                        end
+                        else begin
+                            // 若按键首次被按下，则切换到时间显示模式
+                            if (disp_mode_r == SEG_MODE_NONE) begin
+                                disp_mode_r <= SEG_MODE_TIME;
+                            end
+                            else begin
+                                disp_mode_r <= disp_mode_r;
+                            end
+                            disp_peak_idx_r <= i;
+                        end
+                    end
+                end
+            end
+            else begin
+                disp_mode_r <= disp_mode_r;
+                disp_peak_idx_r <= disp_peak_idx_r;
+            end
+        end
     end
     //////////////////////////////////////////////////////////////////////////////
 
@@ -257,34 +294,34 @@ module Control #(
 
     //////////////////////////////////////////////////////////////////////////////
     reg [5:0] peak_led = 6'b0; // peak number indicator
-    integer i;
+    integer j;
     always @(posedge clk) begin
         if (~rstn || (current_state != STATE_DONE)) begin
             peak_led <= 6'b0;
         end
         else begin
-            for (i = 0; i <= 6; i = i + 1) begin
-                if (i <= detect_peak_num - 1) begin
-                    if (i == disp_peak_idx) begin
-                        peak_led[i] <= (blink_ms == 9'd500) && ms_tick ? ~peak_led[i] : peak_led[i];
+            for (j = 0; j <= 6; j = j + 1) begin
+                if (j <= detect_peak_num - 1) begin
+                    if (j == disp_peak_idx) begin
+                        peak_led[j] <= (blink_ms == 9'd500) && ms_tick ? ~peak_led[j] : peak_led[j];
                     end
                     else begin
-                        peak_led[i] <= 1'b1;
+                        peak_led[j] <= 1'b1;
                     end
                 end
                 else begin
-                    peak_led[i] <= 1'b0;
+                    peak_led[j] <= 1'b0;
                 end
             end
         end
     end
 
-//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
 
-////////////////////////////// DONT MODIFY THIS CODE ////////////////////////
-// assign LED output
-assign led = {led7, peak_led, led0};
-//////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// DONT MODIFY THIS CODE ////////////////////////
+    // assign LED output
+    assign led = {led7, peak_led, led0};
+    //////////////////////////////////////////////////////////////////////////////
 
 endmodule
