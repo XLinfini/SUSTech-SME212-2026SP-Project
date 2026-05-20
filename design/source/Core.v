@@ -38,7 +38,7 @@ module Core #(
     wire [BRAM_ADDR_WIDTH-1:0] issue_addr = vld ? {real_row, real_col} : 0;
     assign bram_rd_addr = issue_addr;
 
-    // 延迟系统
+    // 延迟量定义
     wire issue_a_value = state == S_ISSUING;
     reg issue_a_value_d1 = 0;
     reg issue_a_value_d2 = 0;
@@ -49,33 +49,22 @@ module Core #(
     reg [COLS_ADDR_WIDTH:0] ext_col_d2 = 0;
     reg [COLS_ADDR_WIDTH:0] ext_col_d1 = 0;
     reg [ROWS_ADDR_WIDTH:0] ext_row_d2 = 0;
-    always @(posedge clk) begin
-        issue_a_value_d1 <= issue_a_value;
-        issue_a_value_d2 <= issue_a_value_d1;
-        do_win_mv <= issue_a_value_d2;
-        vld_d1 <= vld;
-        vld_d2 <= vld_d1;
-        ext_row_d1 <= ext_row;
-        ext_row_d2 <= ext_row_d1;
-        ext_col_d1 <= ext_col;
-        ext_col_d2 <= ext_col_d1;
-    end
     wire [ROWS_ADDR_WIDTH-1:0] real_row_d2 = ext_row_d2 - 2;
     wire [COLS_ADDR_WIDTH-1:0] real_col_d2 = ext_col_d2 - 2;
 
     // 行缓存定义
-    reg [7:0] line_buf0 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg [7:0] line_buf1 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg [7:0] line_buf2 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg [7:0] line_buf3 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg line_vld_buf0 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg line_vld_buf1 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg line_vld_buf2 [0:EXT_COLS-1]; // TODO: 需要初始化成0
-    reg line_vld_buf3 [0:EXT_COLS-1]; // TODO: 需要初始化成0
+    reg [7:0] line_buf0 [0:EXT_COLS-1]; // 不需要初始化，因为只要对应的win_vld是0，win的值就不影响结果
+    reg [7:0] line_buf1 [0:EXT_COLS-1];
+    reg [7:0] line_buf2 [0:EXT_COLS-1];
+    reg [7:0] line_buf3 [0:EXT_COLS-1];
+    reg line_vld_buf0 [0:EXT_COLS-1];
+    reg line_vld_buf1 [0:EXT_COLS-1];
+    reg line_vld_buf2 [0:EXT_COLS-1];
+    reg line_vld_buf3 [0:EXT_COLS-1];
 
     // 窗口定义
-    reg [7:0] win [0:4][0:4]; // TODO: 需要初始化成0
-    reg win_vld [0:4][0:4]; // TODO: 需要初始化成0
+    reg [7:0] win [0:4][0:4]; // 不需要初始化，因为只要对应的win_vld是0，win的值就不影响结果
+    reg win_vld [0:4][0:4];
 
     // 判断系统
     reg [11:0] outer_sum = 0;
@@ -113,9 +102,11 @@ module Core #(
     endfunction
 
     // 插入系统
-    reg [7:0] peak_vals [0:5]; // TODO: 需要初始化成0
-    reg [ROWS_ADDR_WIDTH-1:0] peak_rows [0:5]; // TODO: 需要初始化成0
-    reg [COLS_ADDR_WIDTH-1:0] peak_cols [0:5]; // TODO: 需要初始化成0
+    reg [2:0] peak_num = 0;
+    assign detect_peak_num = peak_num;
+    reg [7:0] peak_vals [0:5];
+    reg [ROWS_ADDR_WIDTH-1:0] peak_rows [0:5];
+    reg [COLS_ADDR_WIDTH-1:0] peak_cols [0:5];
     reg [2:0] insert_pos = 3'd7; // 0-5有效，7表示不插入
     integer k;
     always @(win[4][4]) begin
@@ -144,6 +135,10 @@ module Core #(
         end
 
         if (insert_pos >= 0 && insert_pos <= 5) begin
+            if (peak_num <= 6) begin
+                peak_num = peak_num + 1;
+            end
+            
             for (k = 5; k > insert_pos; k = k - 1) begin
                 peak_vals[k] = peak_vals[k-1];
                 peak_rows[k] = peak_rows[k-1];
@@ -197,6 +192,19 @@ module Core #(
                 win_vld[2][4] <= line_vld_buf1[ext_col_d2];
                 win_vld[3][4] <= line_vld_buf0[ext_col_d2];
             end
+
+            // 延迟系统
+            always @(posedge clk) begin
+                issue_a_value_d1 <= issue_a_value;
+                issue_a_value_d2 <= issue_a_value_d1;
+                do_win_mv <= issue_a_value_d2;
+                vld_d1 <= vld;
+                vld_d2 <= vld_d1;
+                ext_row_d1 <= ext_row;
+                ext_row_d2 <= ext_row_d1;
+                ext_col_d1 <= ext_col;
+                ext_col_d2 <= ext_col_d1;
+            end
         end
 
         case (state)
@@ -219,17 +227,93 @@ module Core #(
             S_DRAIN: begin
                 // 如果是在S_DRAIN状态，不迭代坐标，等待缓冲区数据排空即可
                 if (state == S_DRAIN) begin
-                    if (issue_a_value_d2 == 0) begin
+                    if (issue_a_value_d1 == 0 && issue_a_value_d2 == 0) begin
                         state <= S_DONE;
                     end
                 end
             end
 
             S_DONE: begin
-                // 检测完成，在S_DONE只停留一个周期，之后回到S_IDLE展示结果及等待下一次检测
-                state <= S_IDLE;
+                // 检测完成，在S_DONE停留直到detect_start拉低，之后回到S_IDLE展示结果及等待下一次检测
+                if (detect_start == 0) begin
+                    state <= S_IDLE;
+                end
+            end
+
+            S_IDLE: begin
+                // S_IDLE状态下，清空虚拟坐标 延迟量
+                ext_row <= 0;
+                ext_col <= 0;
+                issue_a_value_d1 <= 0;
+                issue_a_value_d2 <= 0;
+                vld_d1 <= 0;
+                vld_d2 <= 0;
+                ext_row_d1 <= 0;
+                ext_row_d2 <= 0;
+                ext_col_d1 <= 0;
+                ext_col_d2 <= 0;
+
+                if (detect_start) begin
+                    // 下一次检测开始前，清空peak_num peak_vals peak_rows peak_cols line_vld_buf win_vld
+                    // TODO: 复用m可能有bug，需要验证
+                    for (m = 0; m <= EXT_COLS-1; m = m + 1) begin
+                        line_vld_buf0[m] <= 0;
+                        line_vld_buf1[m] <= 0;
+                        line_vld_buf2[m] <= 0;
+                        line_vld_buf3[m] <= 0;
+                    end
+                    for (m = 0; m <= 4; m = m + 1) begin
+                        for (n = 0; n <= 4; n = n + 1) begin
+                            win_vld[m][n] <= 0;
+                        end
+                    end
+
+                    peak_num <= 0;
+                    for (m = 0; m <= 5; m = m + 1) begin
+                        peak_vals[m] <= 0;
+                        peak_rows[m] <= 0;
+                        peak_cols[m] <= 0;
+                    end
+
+                    state <= S_ISSUING;
+                end
             end
         endcase
+
+        if (rstn == 0) begin
+            // rstn触发时，回到S_IDLE状态，并清空虚拟坐标 延迟量 peak_num peak_vals peak_rows peak_cols line_vld_buf win_vld
+            state <= S_IDLE;
+
+            ext_row <= 0;
+            ext_col <= 0;
+            issue_a_value_d1 <= 0;
+            issue_a_value_d2 <= 0;
+            vld_d1 <= 0;
+            vld_d2 <= 0;
+            ext_row_d1 <= 0;
+            ext_row_d2 <= 0;
+            ext_col_d1 <= 0;
+            ext_col_d2 <= 0;
+
+            for (m = 0; m <= EXT_COLS-1; m = m + 1) begin
+                line_vld_buf0[m] <= 0;
+                line_vld_buf1[m] <= 0;
+                line_vld_buf2[m] <= 0;
+                line_vld_buf3[m] <= 0;
+            end
+            for (m = 0; m <= 4; m = m + 1) begin
+                for (n = 0; n <= 4; n = n + 1) begin
+                    win_vld[m][n] <= 0;
+                end
+            end
+
+            peak_num <= 0;
+            for (m = 0; m <= 5; m = m + 1) begin
+                peak_vals[m] <= 0;
+                peak_rows[m] <= 0;
+                peak_cols[m] <= 0;
+            end
+        end
     end
 
     assign detect_finish = (state == S_DONE);
