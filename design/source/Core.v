@@ -317,4 +317,25 @@ module Core #(
     end
 
     assign detect_finish = (state == S_DONE);
+    
+    // 输出系统
+    reg [ROWS_ADDR_WIDTH-1:0] disp_peak_row_reg;
+    reg [COLS_ADDR_WIDTH-1:0] disp_peak_col_reg;
+    reg [7:0] disp_peak_val_reg;
+    assign disp_peak_col = disp_peak_col_reg;
+    assign disp_peak_row = disp_peak_row_reg;
+    assign disp_peak_val = disp_peak_val_reg;
+    always @(*) begin
+        if (disp_peak_idx <= peak_num - 1) begin
+            disp_peak_row_reg = peak_rows[disp_peak_idx];
+            disp_peak_col_reg = peak_cols[disp_peak_idx];
+            disp_peak_val_reg = peak_vals[disp_peak_idx];
+        end
+        else begin
+            // TODO: 如果下面这三个输出都为0,应该在Control模块里直接掐断使能信号，根本不显示
+            disp_peak_row_reg = 0;
+            disp_peak_col_reg = 0;
+            disp_peak_val_reg = 0;
+        end
+    end
 endmodule
