@@ -111,7 +111,7 @@ module Core #(
             end
         end
     endfunction
-        
+
     // 插入系统
     reg [7:0] peak_vals [0:5]; // TODO: 需要初始化成0
     reg [ROWS_ADDR_WIDTH-1:0] peak_rows [0:5]; // TODO: 需要初始化成0
@@ -122,17 +122,23 @@ module Core #(
         if (win_vld[2][2] && is_peak(win, win_vld)) begin
             if (win[2][2] > peak_vals[0]) begin
                 insert_pos = 0;
-            end else if (win[2][2] > peak_vals[1]) begin
+            end
+            else if (win[2][2] > peak_vals[1]) begin
                 insert_pos = 1;
-            end else if (win[2][2] > peak_vals[2]) begin
+            end
+            else if (win[2][2] > peak_vals[2]) begin
                 insert_pos = 2;
-            end else if (win[2][2] > peak_vals[3]) begin
+            end
+            else if (win[2][2] > peak_vals[3]) begin
                 insert_pos = 3;
-            end else if (win[2][2] > peak_vals[4]) begin
+            end
+            else if (win[2][2] > peak_vals[4]) begin
                 insert_pos = 4;
-            end else if (win[2][2] > peak_vals[5]) begin
+            end
+            else if (win[2][2] > peak_vals[5]) begin
                 insert_pos = 5;
-            end else begin
+            end
+            else begin
                 insert_pos = 7;
             end
         end
@@ -152,54 +158,72 @@ module Core #(
     // 时序逻辑：进、移、迭
     integer m, n;
     always @(posedge clk) begin
-        // 新的数据进入窗口
-        if (vld_d2 == 0) begin
-            win[4][4] <= 0;
-        end else begin
-            win[4][4] <= bram_rd_data;
+        if (state == S_ISSUING || state == S_DRAIN) begin
+            // 新的数据进入窗口
+            if (vld_d2 == 0) begin
+                win[4][4] <= 0;
+            end
+            else begin
+                win[4][4] <= bram_rd_data;
+            end
+            win_vld[4][4] <= vld_d2;
+
+            // 窗口和行缓存移动
+            if (do_win_mv) begin
+                line_buf0[ext_col_d2] <= win[4][4];
+                line_buf1[ext_col_d2] <= line_buf0[ext_col_d2];
+                line_buf2[ext_col_d2] <= line_buf1[ext_col_d2];
+                line_buf3[ext_col_d2] <= line_buf2[ext_col_d2];
+
+                line_vld_buf0[ext_col_d2] <= win_vld[4][4];
+                line_vld_buf1[ext_col_d2] <= line_vld_buf0[ext_col_d2];
+                line_vld_buf2[ext_col_d2] <= line_vld_buf1[ext_col_d2];
+                line_vld_buf3[ext_col_d2] <= line_vld_buf2[ext_col_d2];
+
+                for (m = 0; m <= 4; m = m + 1) begin
+                    for (n = 0; n <= 3; n = n + 1) begin
+                        win[m][n] <= win[m][n+1];
+                        win_vld[m][n] <= win_vld[m][n+1];
+                    end
+                end
+
+                win[0][4] <= line_buf3[ext_col_d2];
+                win[1][4] <= line_buf2[ext_col_d2];
+                win[2][4] <= line_buf1[ext_col_d2];
+                win[3][4] <= line_buf0[ext_col_d2];
+
+                win_vld[0][4] <= line_vld_buf3[ext_col_d2];
+                win_vld[1][4] <= line_vld_buf2[ext_col_d2];
+                win_vld[2][4] <= line_vld_buf1[ext_col_d2];
+                win_vld[3][4] <= line_vld_buf0[ext_col_d2];
+            end
         end
-        win_vld[4][4] <= vld_d2;
 
-        // 窗口和行缓存移动
-        if (do_win_mv) begin
-            line_buf0[ext_col_d2] <= win[4][4];
-            line_buf1[ext_col_d2] <= line_buf0[ext_col_d2];
-            line_buf2[ext_col_d2] <= line_buf1[ext_col_d2];
-            line_buf3[ext_col_d2] <= line_buf2[ext_col_d2];
-
-            line_vld_buf0[ext_col_d2] <= win_vld[4][4];
-            line_vld_buf1[ext_col_d2] <= line_vld_buf0[ext_col_d2];
-            line_vld_buf2[ext_col_d2] <= line_vld_buf1[ext_col_d2];
-            line_vld_buf3[ext_col_d2] <= line_vld_buf2[ext_col_d2];
-
-            for (m = 0; m <= 4; m = m + 1) begin
-                for (n = 0; n <= 3; n = n + 1) begin
-                    win[m][n] <= win[m][n+1];
-                    win_vld[m][n] <= win_vld[m][n+1];
+        case (state)
+            S_ISSUING: begin
+                // 坐标迭代（只在S_ISSUING状态下进行）
+                if (ext_row == EXT_ROWS - 1 && ext_col == EXT_COLS - 1) begin
+                    state <= S_DRAIN;
+                end
+                else begin
+                    if (ext_col == EXT_COLS - 1) begin
+                        ext_row <= ext_row + 1;
+                        ext_col <= 0;
+                    end
+                    else begin
+                        ext_col <= ext_col + 1;
+                    end
                 end
             end
 
-            win[0][4] <= line_buf3[ext_col_d2];
-            win[1][4] <= line_buf2[ext_col_d2];
-            win[2][4] <= line_buf1[ext_col_d2];
-            win[3][4] <= line_buf0[ext_col_d2];
-
-            win_vld[0][4] <= line_vld_buf3[ext_col_d2];
-            win_vld[1][4] <= line_vld_buf2[ext_col_d2];
-            win_vld[2][4] <= line_vld_buf1[ext_col_d2];
-            win_vld[3][4] <= line_vld_buf0[ext_col_d2];
-        end
-
-        // 坐标迭代
-        if (ext_row == EXT_ROWS - 1 && ext_col == EXT_COLS - 1) begin
-            state <= S_DRAIN;
-        end else begin
-            if (ext_col == EXT_COLS - 1) begin
-                ext_row <= ext_row + 1;
-                ext_col <= 0;
-            end else begin
-                ext_col <= ext_col + 1;
+            S_DRAIN: begin
+                // 如果是在S_DRAIN状态，不迭代坐标，等待缓冲区数据排空即可
+                if (state == S_DRAIN) begin
+                    if (issue_a_value_d2 == 0) begin
+                        state <= S_DONE;
+                    end
+                end
             end
-        end
+        endcase
     end
 endmodule
