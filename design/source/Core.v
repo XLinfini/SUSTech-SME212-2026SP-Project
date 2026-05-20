@@ -224,6 +224,13 @@ module Core #(
                     end
                 end
             end
+
+            S_DONE: begin
+                // 检测完成，在S_DONE只停留一个周期，之后回到S_IDLE展示结果及等待下一次检测
+                state <= S_IDLE;
+            end
         endcase
     end
+
+    assign detect_finish = (state == S_DONE);
 endmodule
