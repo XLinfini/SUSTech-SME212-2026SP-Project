@@ -16,16 +16,16 @@ module Core #(
         output [ROWS_ADDR_WIDTH-1:0] disp_peak_row,
         output [COLS_ADDR_WIDTH-1:0] disp_peak_col,
         output [7:0] disp_peak_val
-    )
+    );
 
-    localparam PADDING = 2;
-    localparam EXT_ROWS = ROWS + 2 * PADDING;
-    localparam EXT_COLS = COLS + 2 * PADDING;
+    parameter PADDING = 2;
+    parameter EXT_ROWS = ROWS + 2 * PADDING;
+    parameter EXT_COLS = COLS + 2 * PADDING;
 
-    localparam S_IDLE = 2'b00;
-    localparam S_ISSUING = 2'b01;
-    localparam S_DRAIN = 2'b10;
-    localparam S_DONE = 2'b11;
+    parameter S_IDLE = 2'b00;
+    parameter S_ISSUING = 2'b01;
+    parameter S_DRAIN = 2'b10;
+    parameter S_DONE = 2'b11;
     reg [1:0] state = S_IDLE;
 
     reg [ROWS_ADDR_WIDTH:0] ext_row = 0;
@@ -67,14 +67,14 @@ module Core #(
     reg win_vld [0:4][0:4];
 
     // 判断系统
-    reg [11:0] outer_sum = 0;
-    reg [4:0] outer_vld_cnt = 0;
     function is_peak;
-        input [7:0] win [0:4][0:4];
-        input win_vld [0:4][0:4];
+        reg [11:0] outer_sum;
+        reg [4:0] outer_vld_cnt;
         integer i, j;
         begin
             is_peak = 1;
+            outer_sum = 0;
+            outer_vld_cnt = 0;
 
             for (i = 0; i <= 4; i = i + 1) begin
                 for (j = 0; j <= 4; j = j + 1) begin
@@ -110,7 +110,7 @@ module Core #(
     reg [2:0] insert_pos = 3'd7; // 0-5有效，7表示不插入
     integer k;
     always @(win[4][4]) begin
-        if (win_vld[2][2] && is_peak(win, win_vld)) begin
+        if (win_vld[2][2] && is_peak()) begin
             if (win[2][2] > peak_vals[0]) begin
                 insert_pos = 0;
             end
@@ -194,17 +194,15 @@ module Core #(
             end
 
             // 延迟系统
-            always @(posedge clk) begin
-                issue_a_value_d1 <= issue_a_value;
-                issue_a_value_d2 <= issue_a_value_d1;
-                do_win_mv <= issue_a_value_d2;
-                vld_d1 <= vld;
-                vld_d2 <= vld_d1;
-                ext_row_d1 <= ext_row;
-                ext_row_d2 <= ext_row_d1;
-                ext_col_d1 <= ext_col;
-                ext_col_d2 <= ext_col_d1;
-            end
+            issue_a_value_d1 <= issue_a_value;
+            issue_a_value_d2 <= issue_a_value_d1;
+            do_win_mv <= issue_a_value_d2;
+            vld_d1 <= vld;
+            vld_d2 <= vld_d1;
+            ext_row_d1 <= ext_row;
+            ext_row_d2 <= ext_row_d1;
+            ext_col_d1 <= ext_col;
+            ext_col_d2 <= ext_col_d1;
         end
 
         case (state)
