@@ -40,7 +40,7 @@ module SegWrapper #(
     assign seg_sel = seg_sel_r;
     always @(posedge clk) begin
         if (!rstn || disp_mode == 2'b00) begin
-            seg_sel_r <= `SEG_SEL_NULL;
+            seg_sel_r <= `SEG_SEL_NULL; // 如果disp_mode=2'b00,则seg_sel_r=`SEG_SEL_NULL且disp_num_0~3=4'b1111，双保险不显示任何内容
         end else if (flash_en) begin
             case (seg_sel_r)
                 `SEG_SEL_NULL: seg_sel_r <= `SEG_SEL_0;
@@ -59,12 +59,6 @@ module SegWrapper #(
     reg [3:0] disp_num_3;
     always @(*) begin
         case(disp_mode)
-            2'b00: begin
-                disp_num_0 = 4'b1111;
-                disp_num_1 = 4'b1111;
-                disp_num_2 = 4'b1111;
-                disp_num_3 = 4'b1111;
-            end
             2'b01: begin
                 disp_num_0 = detect_time % 10;
                 disp_num_1 = (detect_time / 10) % 10;
@@ -82,6 +76,12 @@ module SegWrapper #(
                 disp_num_1 = (disp_peak_val / 10) % 10;
                 disp_num_2 = (disp_peak_val / 100) % 10;
                 disp_num_3 = (disp_peak_val / 1000) % 10;
+            end
+            default: begin
+                disp_num_0 = 4'b1111;
+                disp_num_1 = 4'b1111;
+                disp_num_2 = 4'b1111;
+                disp_num_3 = 4'b1111;
             end
         endcase
     end
