@@ -332,7 +332,6 @@ module Core #(
             disp_peak_val_reg = peak_vals[disp_peak_idx];
         end
         else begin
-            // TODO: 如果下面这三个输出都为0,应该在Control模块里直接掐断使能信号，根本不显示
             disp_peak_row_reg = 0;
             disp_peak_col_reg = 0;
             disp_peak_val_reg = 0;
