@@ -18,6 +18,17 @@ module KeyDebounce #(
         input  [KEY_CNT-1:0] keys,              // input key pins, raw input
         output [KEY_CNT-1:0] keys_stable        // output stable key status, 0 - press down
     );
+    reg key_change = 1'b0;
+    reg key_sampling_finished = 1'b0;
+    reg [KEY_CNT-1:0] previous_keys = {KEY_CNT{1'b1}};
+    always @(posedge clk) begin
+        if (keys != previous_keys) begin
+            key_change <= 1'b1;
+        end else begin
+            key_change <= 1'b0;
+        end
+        previous_keys <= keys;
+    end
 
     reg [KEY_CNT-1:0] keys_stable_reg = {KEY_CNT{1'b1}};
     parameter IDLE = 1'b0, SAMPLING = 1'b1;
@@ -38,18 +49,6 @@ module KeyDebounce #(
         endcase
     end
 
-    reg key_change = 1'b0;
-    reg [KEY_CNT-1:0] previous_keys = {KEY_CNT{1'b1}};
-    always @(posedge clk) begin
-        if (keys != previous_keys) begin
-            key_change <= 1'b1;
-        end else begin
-            key_change <= 1'b0;
-        end
-        previous_keys <= keys;
-    end
-    reg key_sampling_finished = 1'b0;
-
     parameter COUNT_20MS = CLK_FREQ / 50 - 1;
     reg [32:0] sampling_counter = 32'b0;
     always @(posedge clk) begin
@@ -67,5 +66,4 @@ module KeyDebounce #(
     end
 
     assign keys_stable = keys_stable_reg;
-
 endmodule
