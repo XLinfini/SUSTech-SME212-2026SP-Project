@@ -196,10 +196,10 @@ module Control #(
     assign disp_mode = disp_mode_r;
     assign disp_peak_idx = disp_peak_idx_r;
 
-    wire pressed_dw_keys = {pressed_dw_key6, pressed_dw_key5, pressed_dw_key4, pressed_dw_key3, pressed_dw_key2, pressed_dw_key1};
+    wire [5:0] pressed_dw_keys = {pressed_dw_key6, pressed_dw_key5, pressed_dw_key4, pressed_dw_key3, pressed_dw_key2, pressed_dw_key1};
     integer i;
     always @(posedge clk) begin
-        if (~rstn || current != STATE_DONE) begin
+        if (~rstn || current_state != STATE_DONE) begin
             disp_mode_r <= SEG_MODE_NONE;
             disp_peak_idx_r <= 3'b111;
         end
