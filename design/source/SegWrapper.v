@@ -60,22 +60,22 @@ module SegWrapper #(
     always @(*) begin
         case(disp_mode)
             2'b01: begin
-                disp_num_0 = detect_time % 10;
-                disp_num_1 = (detect_time / 10) % 10;
-                disp_num_2 = (detect_time / 100) % 10;
-                disp_num_3 = (detect_time / 1000) % 10;
+                disp_num_0 = (detect_time / 1000) % 10;
+                disp_num_1 = (detect_time / 100) % 10;
+                disp_num_2 = (detect_time / 10) % 10;
+                disp_num_3 = detect_time % 10;
             end
             2'b10: begin
-                disp_num_0 = disp_peak_row % 10;
-                disp_num_1 = (disp_peak_row / 10) % 10;
-                disp_num_2 = disp_peak_col % 10;
-                disp_num_3 = (disp_peak_col / 10) % 10;
+                disp_num_0 = (disp_peak_row / 10) % 10;
+                disp_num_1 = disp_peak_row % 10;
+                disp_num_2 = (disp_peak_col / 10) % 10;
+                disp_num_3 = disp_peak_col % 10;
             end
             2'b11: begin
-                disp_num_0 = disp_peak_val % 10;
-                disp_num_1 = (disp_peak_val / 10) % 10;
-                disp_num_2 = (disp_peak_val / 100) % 10;
-                disp_num_3 = (disp_peak_val / 1000) % 10;
+                disp_num_0 = (disp_peak_val / 1000) % 10;
+                disp_num_1 = (disp_peak_val / 100) % 10;
+                disp_num_2 = (disp_peak_val / 10) % 10;
+                disp_num_3 = disp_peak_val % 10;
             end
             default: begin
                 disp_num_0 = 4'b1111;

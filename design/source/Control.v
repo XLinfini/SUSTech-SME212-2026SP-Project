@@ -294,25 +294,18 @@ module Control #(
 
     //////////////////////////////////////////////////////////////////////////////
     reg [5:0] peak_led = 6'b0; // peak number indicator
-    integer j;
+    wire peak_led_blink_tick = (blink_ms == 9'd500) && ms_tick;
     always @(posedge clk) begin
         if (~rstn || (current_state != STATE_DONE)) begin
             peak_led <= 6'b0;
         end
         else begin
-            for (j = 0; j <= 6; j = j + 1) begin
-                if (j <= detect_peak_num - 1) begin
-                    if (j == disp_peak_idx) begin
-                        peak_led[j] <= (blink_ms == 9'd500) && ms_tick ? ~peak_led[j] : peak_led[j];
-                    end
-                    else begin
-                        peak_led[j] <= 1'b1;
-                    end
-                end
-                else begin
-                    peak_led[j] <= 1'b0;
-                end
-            end
+            peak_led[0] <= (detect_peak_num >= 3'd1) ? ((disp_peak_idx == 3'd0) ? (peak_led_blink_tick ? ~peak_led[0] : peak_led[0]) : 1'b1) : 1'b0;
+            peak_led[1] <= (detect_peak_num >= 3'd2) ? ((disp_peak_idx == 3'd1) ? (peak_led_blink_tick ? ~peak_led[1] : peak_led[1]) : 1'b1) : 1'b0;
+            peak_led[2] <= (detect_peak_num >= 3'd3) ? ((disp_peak_idx == 3'd2) ? (peak_led_blink_tick ? ~peak_led[2] : peak_led[2]) : 1'b1) : 1'b0;
+            peak_led[3] <= (detect_peak_num >= 3'd4) ? ((disp_peak_idx == 3'd3) ? (peak_led_blink_tick ? ~peak_led[3] : peak_led[3]) : 1'b1) : 1'b0;
+            peak_led[4] <= (detect_peak_num >= 3'd5) ? ((disp_peak_idx == 3'd4) ? (peak_led_blink_tick ? ~peak_led[4] : peak_led[4]) : 1'b1) : 1'b0;
+            peak_led[5] <= (detect_peak_num >= 3'd6) ? ((disp_peak_idx == 3'd5) ? (peak_led_blink_tick ? ~peak_led[5] : peak_led[5]) : 1'b1) : 1'b0;
         end
     end
 

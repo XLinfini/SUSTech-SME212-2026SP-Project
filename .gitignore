@@ -1,0 +1,12 @@
+design/compile
+design/constraint_check
+design/device_map
+design/generate_bitstream
+design/log
+design/logbackup
+design/place_route
+design/report_timing
+design/synthesize
+design/cfg_verify_result.sbit
+design/pds.log
+design/run.log

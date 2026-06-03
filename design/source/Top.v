@@ -46,6 +46,7 @@ assign sys_rstn = pll_lock & rstn;
 wire detect_start;
 wire detect_finish;
 wire [2:0] detect_peak_num;
+wire [2:0] detect_peak_num_w;
 wire [12:0] detect_time;
 
 wire [1:0] disp_mode;
@@ -186,7 +187,6 @@ end
 
 reg [2:0] detect_peak_num_d0;
 reg [2:0] detect_peak_num_d1;
-wire [2:0] detect_peak_num_w;
 assign detect_peak_num = detect_peak_num_d1;
 always @(posedge clk) begin
     if (~sys_rstn) begin
@@ -267,6 +267,6 @@ Core #(
    .disp_peak_val     (disp_peak_val_w)
 );
 
-assign bram_rd_addr = {sw, bram_rd_addr_from_core};
+assign bram_rd_addr = {4'b0000, bram_rd_addr_from_core};
 
 endmodule
