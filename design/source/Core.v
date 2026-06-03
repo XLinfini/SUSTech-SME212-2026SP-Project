@@ -18,23 +18,29 @@ module Core #(
         output [7:0] disp_peak_val
     );
 
+    // 参数定义
     localparam PADDING = 2;
     localparam EXT_ROWS = ROWS + 2 * PADDING;
     localparam EXT_COLS = COLS + 2 * PADDING;
     localparam SHIFT_BITS = EXT_COLS * 8;
+
+    // 状态定义
     localparam S_IDLE = 2'd0;
     localparam S_ISSUING = 2'd1;
     localparam S_DRAIN = 2'd2;
     localparam S_DONE = 2'd3;
-
     reg [1:0] state = S_IDLE;
+
     reg [ROWS_ADDR_WIDTH:0] ext_row = 0;
     reg [COLS_ADDR_WIDTH:0] ext_col = 0;
     wire real_valid = (ext_row >= 7'd2) && (ext_row <= 7'd65) && (ext_col >= 7'd2) && (ext_col <= 7'd65);
     wire [ROWS_ADDR_WIDTH-1:0] real_row = ext_row - 7'd2;
     wire [COLS_ADDR_WIDTH-1:0] real_col = ext_col - 7'd2;
+
+    // 发射系统
     assign bram_rd_addr = real_valid ? {real_row, real_col} : {BRAM_ADDR_WIDTH{1'b0}};
 
+    // 延迟量定义
     wire issue_valid = (state == S_ISSUING);
     reg issue_d1 = 0;
     reg issue_d2 = 0;
@@ -53,11 +59,12 @@ module Core #(
     reg [COLS_ADDR_WIDTH-1:0] center_col = 0;
     reg [7:0] pixel_data = 0;
 
+    // 行缓存定义：因为数组用了会出bug，所以只能用很大的寄存器来模拟行缓存
     reg [SHIFT_BITS-1:0] line0 = 0;
     reg [SHIFT_BITS-1:0] line1 = 0;
     reg [SHIFT_BITS-1:0] line2 = 0;
     reg [SHIFT_BITS-1:0] line3 = 0;
-    reg [EXT_COLS-1:0] line0_v = 0;
+    reg [EXT_COLS-1:0] line0_v = 0; // 每个值配一个有效位，用来说明该位是否有效
     reg [EXT_COLS-1:0] line1_v = 0;
     reg [EXT_COLS-1:0] line2_v = 0;
     reg [EXT_COLS-1:0] line3_v = 0;
@@ -70,6 +77,7 @@ module Core #(
     wire line2_v_out = line2_v[EXT_COLS-1];
     wire line3_v_out = line3_v[EXT_COLS-1];
 
+    // 初始化滑动窗口：用数组仍然有可能有bug，所以只能用寄存器来模拟数组
     reg [7:0] w00 = 0, w01 = 0, w02 = 0, w03 = 0, w04 = 0;
     reg [7:0] w10 = 0, w11 = 0, w12 = 0, w13 = 0, w14 = 0;
     reg [7:0] w20 = 0, w21 = 0, w22 = 0, w23 = 0, w24 = 0;
@@ -81,6 +89,7 @@ module Core #(
     reg v30 = 0, v31 = 0, v32 = 0, v33 = 0, v34 = 0;
     reg v40 = 0, v41 = 0, v42 = 0, v43 = 0, v44 = 0;
 
+    // 用wire直接算是不是峰值
     wire local_max =
         (!v00 || w22 > w00) && (!v01 || w22 > w01) && (!v02 || w22 > w02) && (!v03 || w22 > w03) && (!v04 || w22 > w04) &&
         (!v10 || w22 > w10) && (!v11 || w22 > w11) && (!v12 || w22 > w12) && (!v13 || w22 > w13) && (!v14 || w22 > w14) &&
@@ -105,6 +114,7 @@ module Core #(
     reg [ROWS_ADDR_WIDTH-1:0] peak_rows [0:5];
     reg [COLS_ADDR_WIDTH-1:0] peak_cols [0:5];
 
+    // 组合逻辑判断插入位置
     reg do_insert;
     reg [2:0] insert_pos;
     always @(*) begin
@@ -127,9 +137,19 @@ module Core #(
         end
     end
 
+    /*
+        时序逻辑：延、进、移、插、迭
+
+        状态机只管“发不发地址”和“什么时候结束”
+        延迟管道只管“地址/valid 和 BRAM data 对齐”
+        pix_cycle 只管“窗口何时移动”
+        eval_valid 只管“何时检测窗口”
+        do_insert 只管“何时更新 Top-6”
+    */
     integer k;
     always @(posedge clk) begin
         if (~rstn) begin
+            // 复位：状态机回到初始状态，所有寄存器清零
             state <= S_IDLE;
             ext_row <= 0; ext_col <= 0;
             issue_d1 <= 0; issue_d2 <= 0; issue_d3 <= 0; eval_vld <= 0;
@@ -145,6 +165,7 @@ module Core #(
                 peak_vals[k] <= 0; peak_rows[k] <= 0; peak_cols[k] <= 0;
             end
         end else begin
+            // 延迟管道
             if (state == S_ISSUING || state == S_DRAIN) begin
                 issue_d1 <= issue_valid;
                 issue_d2 <= issue_d1;
@@ -164,6 +185,7 @@ module Core #(
                 pixel_data <= bram_rd_data;
             end
 
+            // 滑动窗口和行缓存移动
             if (issue_d3) begin
                 w00 <= w01; w01 <= w02; w02 <= w03; w03 <= w04; w04 <= line3_out;
                 w10 <= w11; w11 <= w12; w12 <= w13; w13 <= w14; w14 <= line2_out;
@@ -186,6 +208,7 @@ module Core #(
                 line3_v <= {line3_v[EXT_COLS-2:0], line2_v_out};
             end
 
+            // 如果有需要，插入峰值
             if (do_insert) begin
                 if (peak_num < 6) begin
                     peak_num <= peak_num + 1'b1;
@@ -202,29 +225,40 @@ module Core #(
                 peak_cols[insert_pos] <= center_col;
             end
 
+            // 状态机
             case (state)
                 S_IDLE: begin
+                    // 保持如下寄存器的初始值，等待detect_start信号
                     ext_row <= 0; ext_col <= 0;
                     issue_d1 <= 0; issue_d2 <= 0; issue_d3 <= 0; eval_vld <= 0;
                     valid_d1 <= 0; valid_d2 <= 0; valid_d3 <= 0;
                     row_d1 <= 0; row_d2 <= 0; row_d3 <= 0;
                     col_d1 <= 0; col_d2 <= 0; col_d3 <= 0;
                     pixel_data <= 0;
+
+                    // detect_start信号来临时，进行一次更彻底的清空，特别是
                     if (detect_start) begin
                         peak_num <= 0;
+
                         line0 <= 0; line1 <= 0; line2 <= 0; line3 <= 0;
                         line0_v <= 0; line1_v <= 0; line2_v <= 0; line3_v <= 0;
+                        
                         v00 <= 0; v01 <= 0; v02 <= 0; v03 <= 0; v04 <= 0;
                         v10 <= 0; v11 <= 0; v12 <= 0; v13 <= 0; v14 <= 0;
                         v20 <= 0; v21 <= 0; v22 <= 0; v23 <= 0; v24 <= 0;
                         v30 <= 0; v31 <= 0; v32 <= 0; v33 <= 0; v34 <= 0;
                         v40 <= 0; v41 <= 0; v42 <= 0; v43 <= 0; v44 <= 0;
+                        
                         for (k = 0; k < 6; k = k + 1) begin
-                            peak_vals[k] <= 0; peak_rows[k] <= 0; peak_cols[k] <= 0;
+                            peak_vals[k] <= 0;
+                            peak_rows[k] <= 0;
+                            peak_cols[k] <= 0;
                         end
                         state <= S_ISSUING;
                     end
                 end
+                
+                // S_ISSUING状态下迭代坐标
                 S_ISSUING: begin
                     if (ext_row == EXT_ROWS - 1 && ext_col == EXT_COLS - 1) begin
                         state <= S_DRAIN;
@@ -235,11 +269,15 @@ module Core #(
                         ext_col <= ext_col + 1'b1;
                     end
                 end
+
+                // S_DRAIN状态下不再发出新的地址，但要等所有的地址对应的数据都排空，并且等最后一个窗口的检测完成
                 S_DRAIN: begin
                     if (!issue_d1 && !issue_d2 && !issue_d3 && !eval_vld) begin
                         state <= S_DONE;
                     end
                 end
+
+                // S_DONE状态只维持一个时钟周期，纯粹是为了拉高detect_finish信号
                 S_DONE: begin
                     if (!detect_start) begin
                         state <= S_IDLE;
@@ -249,6 +287,7 @@ module Core #(
         end
     end
 
+    // 显示输出
     assign detect_finish = (state == S_DONE);
     reg [ROWS_ADDR_WIDTH-1:0] disp_peak_row_reg;
     reg [COLS_ADDR_WIDTH-1:0] disp_peak_col_reg;
