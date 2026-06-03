@@ -10,3 +10,4 @@ design/synthesize
 design/cfg_verify_result.sbit
 design/pds.log
 design/run.log
+design/multiseed_summary.csv
