@@ -107,3 +107,10 @@ dev_map
 pnr 
 report_timing 
 gen_bit_stream 
+set_arch -family Logos -device PGL22G -speedgrade -6 -package MBG324
+compile -top_module Top
+synthesize -ads -selected_syn_tool_opt 2 
+dev_map 
+pnr 
+report_timing 
+gen_bit_stream 
