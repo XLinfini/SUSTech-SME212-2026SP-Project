@@ -267,6 +267,6 @@ Core #(
    .disp_peak_val     (disp_peak_val_w)
 );
 
-assign bram_rd_addr = {4'b0000, bram_rd_addr_from_core};
+assign bram_rd_addr = {sw[3:0], bram_rd_addr_from_core};
 
 endmodule
