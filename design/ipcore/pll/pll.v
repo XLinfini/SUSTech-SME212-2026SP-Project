@@ -1,3 +1,5 @@
+// Created by IP Generator (Version 2022.1 build 99559)
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -25,18 +27,18 @@ module pll (
 
     localparam real CLKIN_FREQ          = 50.0;
     localparam integer STATIC_RATIOI    = 2;
-    localparam integer STATIC_RATIO0    = 60;
+    localparam integer STATIC_RATIO0    = 10;
     localparam integer STATIC_RATIO1    = 12;
     localparam integer STATIC_RATIO2    = 16;
     localparam integer STATIC_RATIO3    = 16;
     localparam integer STATIC_RATIO4    = 16;
-    localparam integer STATIC_RATIOF    = 24;
-    localparam integer STATIC_DUTY0     = 60;
+    localparam integer STATIC_RATIOF    = 28;
+    localparam integer STATIC_DUTY0     = 10;
     localparam integer STATIC_DUTY1     = 12;
     localparam integer STATIC_DUTY2     = 16;
     localparam integer STATIC_DUTY3     = 16;
     localparam integer STATIC_DUTY4     = 16;
-    localparam integer STATIC_DUTYF     = 24;
+    localparam integer STATIC_DUTYF     = 28;
     localparam integer STATIC_PHASE0    = 16;
     localparam integer STATIC_PHASE1    = 16;
     localparam integer STATIC_PHASE2    = 16;
