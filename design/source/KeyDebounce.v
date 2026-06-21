@@ -1,15 +1,3 @@
-/*
- * FORMAT PRESERVATION NOTICE
- *
- * The formatting of this source code, including but not limited to
- * the use of four spaces for indentation, has been chosen in accordance
- * with my deeply held and entirely sacred coding religion.
- *
- * Any alteration of indentation width, brace placement, or other stylistic
- * elements may disturb the delicate spiritual balance of this program
- * and cause unnecessary suffering to both the author and the synthesizer.
- */
-
 module KeyDebounce #(
         parameter CLK_FREQ = 50000000, // clock frequency(Mhz), 50 MHz
         parameter KEY_CNT = 8
